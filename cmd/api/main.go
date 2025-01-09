@@ -1,7 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"github.com/lohanguedes/taskify/internal/api"
+)
 
 func main() {
-	fmt.Println("Hello, World")
+	app := api.Application{}
 }
