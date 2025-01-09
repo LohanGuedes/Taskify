@@ -9,8 +9,8 @@ type Task struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
-	priority    int32     `json:"priority"`
-	id          int32     `json:"id"`
+	Priority    int32     `json:"priority"`
+	Id          int32     `json:"id"`
 }
 
 type TaskStore interface {
