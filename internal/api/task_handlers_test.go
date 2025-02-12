@@ -3,9 +3,16 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/lohanguedes/taskify/internal/services"
+	"github.com/lohanguedes/taskify/internal/store"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHandleCreateTask(t *testing.T) {
@@ -46,4 +53,114 @@ func TestHandleCreateTask(t *testing.T) {
 	if resBody["title"] != payload["title"] {
 		t.Errorf("title differs; got: %q | want: %q", resBody["title"], payload["title"])
 	}
+}
+
+type MockTaskStore struct{}
+
+func (mocktaskstore *MockTaskStore) CreateTask(title string, description string, priority int32) (store.Task, error) {
+	return store.Task{
+		Id:          1,
+		Title:       title,
+		Description: description,
+		Priority:    priority,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (mocktaskstore *MockTaskStore) GetTaskById(id int32) (store.Task, error) {
+	return store.Task{
+		Id:          id,
+		Title:       "Mock Test Task",
+		Description: "Mock Test Description",
+		Priority:    1,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (mocktaskstore *MockTaskStore) ListTasks() ([]store.Task, error) {
+	return []store.Task{
+		{
+			Id:          1,
+			Title:       "Mock Test Task",
+			Description: "Mock Test Description",
+			Priority:    1,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+		{
+			Id:          2,
+			Title:       "Mock Test Task2",
+			Description: "Mock Test Description2",
+			Priority:    1,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+	}, nil
+}
+
+func (mocktaskstore *MockTaskStore) UpdateTask(id int32, title string, description string, priority int32) (store.Task, error) {
+	return store.Task{
+		Id:          id,
+		Title:       title,
+		Description: description,
+		Priority:    priority,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (mocktaskstore *MockTaskStore) DeleteTask(id int32) error {
+	return nil
+}
+
+func TestHandlerCreateTaskIntegration(t *testing.T) {
+	mockStore := MockTaskStore{}
+	taskService := services.NewTaskService(&mockStore)
+
+	app := Application{
+		TaskService: *taskService,
+		Router:      chi.NewRouter(),
+	}
+
+	ts := httptest.NewServer(app.BindRoutes())
+	defer ts.Close()
+
+	payload := store.Task{
+		Title:       "Integration Test Task",
+		Description: "Testing the full API integration",
+		Priority:    1,
+	}
+
+	body, err := json.Marshal(payload)
+	assert.NoError(t, err, "Failed to Marshall request payload")
+
+	resp, err := http.Post(ts.URL+"/api/v1/tasks", "application/json", bytes.NewReader(body))
+	assert.NoError(t, err, "Failed  to send POST request")
+
+	assert.Equal(
+		t,
+		http.StatusCreated,
+		resp.StatusCode,
+		fmt.Sprintf("Expected status 201 got %d", resp.StatusCode),
+	)
+
+	var respTask store.Task
+
+	err = json.NewDecoder(resp.Body).Decode(&respTask)
+	assert.NoError(t, err, "Failed to decode response body")
+
+	execptTask := store.Task{
+		Id:          1,
+		Title:       payload.Title,
+		Description: payload.Description,
+		Priority:    payload.Priority,
+	}
+
+	// Zero out cretion and update time for comparison
+	respTask.CreatedAt = time.Time{}
+	respTask.UpdatedAt = time.Time{}
+
+	assert.Equal(t, execptTask, respTask, "The payload and response task do not match")
 }
