@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+
 	"github.com/lohanguedes/taskify/internal/store"
 )
 
@@ -12,26 +14,17 @@ func NewTaskService(store store.TaskStore) *TaskService {
 	return &TaskService{Store: store}
 }
 
-func (s *TaskService) CreateTask(title, description string, priority int32) (store.Task, error) {
+func (s *TaskService) CreateTask(ctx context.Context, title, description string, priority int32) (store.Task, error) {
 	// Add business logic here
-	task, err := s.Store.CreateTask(title, description, priority)
+	task, err := s.Store.CreateTask(ctx, title, description, priority)
 	if err != nil {
 		return store.Task{}, err
 	}
 	return task, err
 }
 
-func (s *TaskService) GetTask(id int32) (store.Task, error) {
-	task, err := s.Store.GetTaskById(id)
-	if err != nil {
-		return store.Task{}, err
-	}
-
-	return task, err
-}
-
-func (s *TaskService) UpdateTask(id int32, title, description string, priority int32) (store.Task, error) {
-	task, err := s.Store.UpdateTask(id, title, description, priority)
+func (s *TaskService) GetTask(ctx context.Context, id int32) (store.Task, error) {
+	task, err := s.Store.GetTaskById(ctx, id)
 	if err != nil {
 		return store.Task{}, err
 	}
@@ -39,7 +32,16 @@ func (s *TaskService) UpdateTask(id int32, title, description string, priority i
 	return task, err
 }
 
-func (s *TaskService) DeleteTask(id int32) error {
+func (s *TaskService) UpdateTask(ctx context.Context, id int32, title, description string, priority int32) (store.Task, error) {
+	task, err := s.Store.UpdateTask(ctx, id, title, description, priority)
+	if err != nil {
+		return store.Task{}, err
+	}
+
+	return task, err
+}
+
+func (s *TaskService) DeleteTask(ctx context.Context, id int32) error {
 	// Add business logic here...
-	return s.Store.DeleteTask(id)
+	return s.Store.DeleteTask(ctx, id)
 }

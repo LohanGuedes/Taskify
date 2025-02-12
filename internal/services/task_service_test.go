@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 
 type MockTaskStore struct{}
 
-func (mocktaskstore *MockTaskStore) CreateTask(title string, description string, priority int32) (store.Task, error) {
+func (mocktaskstore *MockTaskStore) CreateTask(ctx context.Context, title string, description string, priority int32) (store.Task, error) {
 	return store.Task{
 		Id:          1,
 		Title:       title,
@@ -21,7 +22,7 @@ func (mocktaskstore *MockTaskStore) CreateTask(title string, description string,
 	}, nil
 }
 
-func (mocktaskstore *MockTaskStore) GetTaskById(id int32) (store.Task, error) {
+func (mocktaskstore *MockTaskStore) GetTaskById(ctx context.Context, id int32) (store.Task, error) {
 	return store.Task{
 		Id:          id,
 		Title:       "Mock Test Task",
@@ -32,7 +33,7 @@ func (mocktaskstore *MockTaskStore) GetTaskById(id int32) (store.Task, error) {
 	}, nil
 }
 
-func (mocktaskstore *MockTaskStore) ListTasks() ([]store.Task, error) {
+func (mocktaskstore *MockTaskStore) ListTasks(ctx context.Context) ([]store.Task, error) {
 	return []store.Task{
 		{
 			Id:          1,
@@ -53,7 +54,7 @@ func (mocktaskstore *MockTaskStore) ListTasks() ([]store.Task, error) {
 	}, nil
 }
 
-func (mocktaskstore *MockTaskStore) UpdateTask(id int32, title string, description string, priority int32) (store.Task, error) {
+func (mocktaskstore *MockTaskStore) UpdateTask(ctx context.Context, id int32, title string, description string, priority int32) (store.Task, error) {
 	return store.Task{
 		Id:          id,
 		Title:       title,
@@ -64,7 +65,7 @@ func (mocktaskstore *MockTaskStore) UpdateTask(id int32, title string, descripti
 	}, nil
 }
 
-func (mocktaskstore *MockTaskStore) DeleteTask(id int32) error {
+func (mocktaskstore *MockTaskStore) DeleteTask(ctx context.Context, id int32) error {
 	return nil
 }
 
@@ -72,9 +73,10 @@ func TestCreateTask(t *testing.T) {
 	// Arrange
 	mockStore := MockTaskStore{}
 	taskService := NewTaskService(&mockStore)
+	ctx := context.Background()
 
 	// Act
-	task, err := taskService.Store.CreateTask("Mock Test Task", "Mock Test Description", 1)
+	task, err := taskService.Store.CreateTask(ctx, "Mock Test Task", "Mock Test Description", 1)
 
 	// Assert
 	assert.NoError(t, err)
@@ -86,8 +88,9 @@ func TestCreateTask(t *testing.T) {
 func TestGetTask(t *testing.T) {
 	mockStore := MockTaskStore{}
 	taskService := NewTaskService(&mockStore)
+	ctx := context.Background()
 
-	task, err := taskService.Store.GetTaskById(1)
+	task, err := taskService.Store.GetTaskById(ctx, 1)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int32(1), task.Id)
@@ -98,9 +101,10 @@ func TestListTasks(t *testing.T) {
 	// Arrange
 	mockStore := MockTaskStore{}
 	taskService := NewTaskService(&mockStore)
+	ctx := context.Background()
 
 	// Act
-	tasks, err := taskService.Store.ListTasks()
+	tasks, err := taskService.Store.ListTasks(ctx)
 
 	assert.NoError(t, err)
 	assert.Len(t, tasks, 2)

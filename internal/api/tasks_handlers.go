@@ -33,3 +33,15 @@ func (api *Application) handleCreateTask(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(task)
 }
+
+func (api *Application) handleListTasks(w http.ResponseWriter, r *http.Request) {
+	tasks, err := api.TaskService.Store.ListTasks(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to list tasks, try again later", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tasks)
+}

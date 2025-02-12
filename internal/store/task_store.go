@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"time"
 )
 
@@ -14,9 +15,9 @@ type Task struct {
 }
 
 type TaskStore interface {
-	CreateTask(title, description string, priority int32) (Task, error)
-	GetTaskById(id int32) (Task, error)
-	ListTasks() ([]Task, error)
-	UpdateTask(id int32, title, description string, priority int32) (Task, error)
-	DeleteTask(id int32) error
+	CreateTask(ctx context.Context, title, description string, priority int32) (Task, error)
+	GetTaskById(ctx context.Context, id int32) (Task, error)
+	ListTasks(ctx context.Context) ([]Task, error)
+	UpdateTask(ctx context.Context, id int32, title, description string, priority int32) (Task, error)
+	DeleteTask(ctx context.Context, id int32) error
 }

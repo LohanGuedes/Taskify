@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -57,7 +58,7 @@ func TestHandleCreateTask(t *testing.T) {
 
 type MockTaskStore struct{}
 
-func (mocktaskstore *MockTaskStore) CreateTask(title string, description string, priority int32) (store.Task, error) {
+func (mocktaskstore *MockTaskStore) CreateTask(ctx context.Context, title string, description string, priority int32) (store.Task, error) {
 	return store.Task{
 		Id:          1,
 		Title:       title,
@@ -68,7 +69,7 @@ func (mocktaskstore *MockTaskStore) CreateTask(title string, description string,
 	}, nil
 }
 
-func (mocktaskstore *MockTaskStore) GetTaskById(id int32) (store.Task, error) {
+func (mocktaskstore *MockTaskStore) GetTaskById(ctx context.Context, id int32) (store.Task, error) {
 	return store.Task{
 		Id:          id,
 		Title:       "Mock Test Task",
@@ -79,7 +80,7 @@ func (mocktaskstore *MockTaskStore) GetTaskById(id int32) (store.Task, error) {
 	}, nil
 }
 
-func (mocktaskstore *MockTaskStore) ListTasks() ([]store.Task, error) {
+func (mocktaskstore *MockTaskStore) ListTasks(ctx context.Context) ([]store.Task, error) {
 	return []store.Task{
 		{
 			Id:          1,
@@ -100,7 +101,7 @@ func (mocktaskstore *MockTaskStore) ListTasks() ([]store.Task, error) {
 	}, nil
 }
 
-func (mocktaskstore *MockTaskStore) UpdateTask(id int32, title string, description string, priority int32) (store.Task, error) {
+func (mocktaskstore *MockTaskStore) UpdateTask(ctx context.Context, id int32, title string, description string, priority int32) (store.Task, error) {
 	return store.Task{
 		Id:          id,
 		Title:       title,
@@ -111,7 +112,7 @@ func (mocktaskstore *MockTaskStore) UpdateTask(id int32, title string, descripti
 	}, nil
 }
 
-func (mocktaskstore *MockTaskStore) DeleteTask(id int32) error {
+func (mocktaskstore *MockTaskStore) DeleteTask(ctx context.Context, id int32) error {
 	return nil
 }
 
@@ -138,6 +139,7 @@ func TestHandlerCreateTaskIntegration(t *testing.T) {
 
 	resp, err := http.Post(ts.URL+"/api/v1/tasks", "application/json", bytes.NewReader(body))
 	assert.NoError(t, err, "Failed  to send POST request")
+	defer resp.Body.Close()
 
 	assert.Equal(
 		t,
@@ -163,4 +165,61 @@ func TestHandlerCreateTaskIntegration(t *testing.T) {
 	respTask.UpdatedAt = time.Time{}
 
 	assert.Equal(t, execptTask, respTask, "The payload and response task do not match")
+}
+
+func TestHandleListTasks(t *testing.T) {
+	mockStore := MockTaskStore{}
+	taskService := services.NewTaskService(&mockStore)
+
+	app := Application{
+		TaskService: *taskService,
+	}
+
+	req := httptest.NewRequest("GET", "/api/v1/tasks", nil)
+	rec := httptest.NewRecorder()
+
+	handler := http.HandlerFunc(app.handleListTasks)
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code, "Expected status 200 got %d", rec.Code)
+
+	var tasks []store.Task
+	err := json.NewDecoder(rec.Body).Decode(&tasks)
+	assert.NoError(t, err, "Failed to decode response body")
+
+	assert.Len(t, tasks, 2, "Expected 2 task got %d", len(tasks))
+}
+
+func TestHandleListTasksIntegration(t *testing.T) {
+	mockStore := MockTaskStore{}
+	taskService := services.NewTaskService(&mockStore)
+	app := Application{
+		TaskService: *taskService,
+		Router:      chi.NewRouter(),
+	}
+
+	ts := httptest.NewServer(app.BindRoutes())
+	defer ts.Close()
+	resp, err := http.Get(ts.URL + "/api/v1/tasks")
+	assert.NoError(t, err, "Failed to send GET request")
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status 200 got %d", resp.StatusCode)
+
+	var tasks []store.Task
+	err = json.NewDecoder(resp.Body).Decode(&tasks)
+	assert.NoError(t, err, "Failed to decode response body")
+
+	assert.Len(t, tasks, 2, "Expected 2 task got %d", len(tasks))
+
+	expectedTask := store.Task{
+		Id:          1,
+		Title:       "Mock Test Task",
+		Description: "Mock Test Description",
+		Priority:    1,
+	}
+	tasks[0].CreatedAt = time.Time{}
+	tasks[0].UpdatedAt = time.Time{}
+
+	assert.Equal(t, expectedTask, tasks[0], "The payload and response task do not match")
 }

@@ -17,7 +17,7 @@ func (api *Application) BindRoutes() http.Handler {
 	api.Router.Route("/api", func(r chi.Router) {
 		r.Route("/v1", func(r chi.Router) {
 			r.Post("/tasks", api.handleCreateTask)
-			// r.Get("/tasks", api.handleListTasks)
+			r.Get("/tasks", api.handleListTasks)
 			// r.Get("/tasks/{id}", api.handleGetTask)
 			// r.Put("/tasks/{id}", api.handleUpdateTask)
 		})
