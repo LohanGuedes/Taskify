@@ -223,3 +223,86 @@ func TestHandleListTasksIntegration(t *testing.T) {
 
 	assert.Equal(t, expectedTask, tasks[0], "The payload and response task do not match")
 }
+
+func TestHandleGetTask(t *testing.T) {
+	mockStore := MockTaskStore{}
+	taskService := services.NewTaskService(&mockStore)
+	app := Application{
+		TaskService: *taskService,
+	}
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "1")
+
+	req := httptest.NewRequest("GET", "/api/v1/tasks/1", nil)
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	rec := httptest.NewRecorder()
+
+	handler := http.HandlerFunc(app.handleGetTask)
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code, "Expected status 200 got %d", rec.Code)
+
+	var task store.Task
+	err := json.NewDecoder(rec.Body).Decode(&task)
+	assert.NoError(t, err, "Failed to decode response body")
+	assert.Equal(t, int32(1), task.Id, "Expected task id 1 got %d", task.Id)
+}
+
+func TestHandleUpdateTask(t *testing.T) {
+	mockStore := MockTaskStore{}
+	taskService := services.NewTaskService(&mockStore)
+	app := Application{
+		TaskService: *taskService,
+	}
+
+	payload := map[string]any{
+		"title":       "Updated Task",
+		"description": "Updated Description",
+		"priority":    1337,
+	}
+
+	body, err := json.Marshal(payload)
+	assert.NoError(t, err, "Failed to Marshall request payload")
+	t.Log(string(body))
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "1")
+
+	req := httptest.NewRequest("PUT", "/api/v1/tasks/1", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	rec := httptest.NewRecorder()
+
+	handler := http.HandlerFunc(app.handleUpdateTask)
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code, "Expected status 200 got %d", rec.Code)
+
+	var updatedTask store.Task
+	err = json.NewDecoder(rec.Body).Decode(&updatedTask)
+	assert.NoError(t, err, "Failed to decode response body")
+	assert.Equal(t, "Updated Task", updatedTask.Title, "Expected title 'Updated Task' got %s", updatedTask.Title)
+	assert.Equal(t, "Updated Description", updatedTask.Description, "Expected title 'Updated Task' got %s", updatedTask.Title)
+	assert.Equal(t, int32(1337), updatedTask.Priority, "Expected title 'Updated Task' got %s", updatedTask.Title)
+}
+
+func TestHandleDeleteTask(t *testing.T) {
+	mockStore := MockTaskStore{}
+	taskService := services.NewTaskService(&mockStore)
+	app := Application{
+		TaskService: *taskService,
+	}
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "1")
+
+	req := httptest.NewRequest("DELETE", "/api/v1/tasks/1", nil)
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	rec := httptest.NewRecorder()
+
+	handler := http.HandlerFunc(app.handleDeleteTask)
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusNoContent, rec.Code, "Expected status 204 got %d", rec.Code)
+}
